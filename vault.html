@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VaultBite — My Vault</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="main.css">
+</head>
+<body class="app-page">
+
+<!-- ── SIDEBAR ── -->
+<nav class="sidebar">
+  <div class="sidebar-brand">
+    <span class="sidebar-logo">🔒</span>
+    <div>
+      <div class="sidebar-brand-name">VaultBite</div>
+      <div class="sidebar-brand-sub">Password Manager</div>
+    </div>
+  </div>
+
+  <div class="sidebar-section-label">Navigate</div>
+  <button class="nav-item active" onclick="showPage('dashboard')">
+    <span class="nav-icon">🏠</span><span>Dashboard</span>
+  </button>
+  <button class="nav-item" onclick="showPage('vault')">
+    <span class="nav-icon">🔐</span><span>My Vault</span>
+    <span class="nav-badge" id="vault-count">0</span>
+  </button>
+  <button class="nav-item" onclick="showPage('generator')">
+    <span class="nav-icon">⚡</span><span>Generator</span>
+  </button>
+  <button class="nav-item" onclick="showPage('checker')">
+    <span class="nav-icon">🔍</span><span>Strength Check</span>
+  </button>
+  <button class="nav-item" onclick="showPage('security')">
+    <span class="nav-icon">🛡</span><span>Security Tips</span>
+  </button>
+
+  <div style="height:1rem"></div>
+  <div class="sidebar-section-label">Danger Zone</div>
+  <button class="nav-item" id="weak-nav" onclick="showPage('vault'); filterWeak()">
+    <span class="nav-icon">⚠</span><span>Weak Passwords</span>
+    <span class="nav-badge warn" id="weak-count">0</span>
+  </button>
+
+  <div class="sidebar-footer">
+    <div class="user-pill">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <div>
+        <div class="user-name" id="user-name">Loading…</div>
+        <div class="user-email" id="user-email"></div>
+      </div>
+    </div>
+    <button class="nav-item" onclick="handleLogout()" style="margin-top:4px">
+      <span class="nav-icon">↩</span><span>Sign Out</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ── MAIN ── -->
+<div class="main-content">
+  <div class="top-bar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="search" id="search-input" class="search-input" placeholder="Search your vault…" oninput="handleSearch(this.value)" />
+    </div>
+    <button class="add-btn" onclick="openAddModal()">＋ Add Password</button>
+  </div>
+
+  <div class="page-inner">
+
+    <!-- ── DASHBOARD PAGE ── -->
+    <div id="page-dashboard">
+      <h2 style="margin-bottom:1.5rem">
+  <span id="welcome-name">Welcome...</span>
+</h2>
+      <div class="stats-row" id="stats-row">
+        <div class="stat-card"><div class="stat-icon">🔐</div><div class="stat-num" id="stat-total">0</div><div class="stat-lbl">Passwords stored</div></div>
+        <div class="stat-card"><div class="stat-icon">💪</div><div class="stat-num" id="stat-strong">0</div><div class="stat-lbl">Strong passwords</div></div>
+        <div class="stat-card"><div class="stat-icon">⚠</div><div class="stat-num" id="stat-weak">0</div><div class="stat-lbl">Weak / need fixing</div></div>
+        <div class="stat-card"><div class="stat-icon">🏆</div><div class="stat-num" id="stat-score">–</div><div class="stat-lbl">Vault health score</div></div>
+      </div>
+
+      <div class="section-header"><div class="section-title">Recent entries</div></div>
+      <div class="vault-list" id="recent-list"></div>
+
+      <div class="section-spacer"></div>
+      <div class="section-header"><div class="section-title">⚠ Needs attention</div></div>
+      <div class="vault-list" id="weak-list"></div>
+    </div>
+
+    <!-- ── VAULT PAGE ── -->
+    <div id="page-vault" class="hidden">
+      <div class="section-header">
+        <div class="section-title">All Passwords</div>
+        <div style="display:flex;gap:8px">
+          <select id="cat-filter" class="field-input" style="width:auto;padding:8px 12px;font-size:0.85rem" onchange="renderVault()">
+            <option value="all">All categories</option>
+            <option value="social">Social</option>
+            <option value="work">Work</option>
+            <option value="finance">Finance</option>
+            <option value="email">Email</option>
+            <option value="shopping">Shopping</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="vault-list" id="vault-list"></div>
+    </div>
+
+    <!-- ── GENERATOR PAGE ── -->
+    <div id="page-generator" class="hidden">
+      <h2 style="margin-bottom:1.5rem">⚡ Password Generator</h2>
+      <div class="generator-card">
+        <div class="gen-output" id="gen-output">Click generate to create a password</div>
+        <div style="display:flex;gap:8px;margin-bottom:1.5rem;flex-wrap:wrap">
+          <button class="btn-primary" style="border-radius:40px;padding:10px 24px" onclick="doGenerate()">🎲 Generate</button>
+         <button onclick="generatePassphrase()">Passphrase</button>
+          <button class="btn-secondary" style="border-radius:40px" onclick="copyGenOutput()">📋 Copy</button>
+          <button class="btn-secondary" style="border-radius:40px" onclick="saveGenPassword()">💾 Save to Vault</button>
+        </div>
+
+        <div class="gen-controls">
+          <div class="gen-row">
+            <span class="gen-label">Length</span>
+            <input type="range" class="gen-slider" id="gen-length" min="8" max="64" value="16" oninput="document.getElementById('gen-len-val').textContent=this.value; doGenerate()" />
+            <span class="gen-val" id="gen-len-val">16</span>
+          </div>
+          <div style="margin-top:0.5rem">
+            <div class="gen-label" style="margin-bottom:0.7rem">Include</div>
+            <div class="toggle-row">
+              <label class="toggle-chip on" id="chip-upper">
+                <input type="checkbox" id="opt-upper" checked onchange="toggleChip(this,'chip-upper');doGenerate()">
+                A–Z Uppercase
+              </label>
+              <label class="toggle-chip on" id="chip-numbers">
+                <input type="checkbox" id="opt-numbers" checked onchange="toggleChip(this,'chip-numbers');doGenerate()">
+                0–9 Numbers
+              </label>
+              <label class="toggle-chip on" id="chip-symbols">
+                <input type="checkbox" id="opt-symbols" checked onchange="toggleChip(this,'chip-symbols');doGenerate()">
+                !@# Symbols
+              </label>
+              <label class="toggle-chip" id="chip-ambig">
+                <input type="checkbox" id="opt-ambig" onchange="toggleChip(this,'chip-ambig');doGenerate()">
+                Exclude ambiguous (Il1O0)
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="strength-meter">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:0.85rem;font-weight:500">Generated password strength</span>
+            <span class="strength-label" id="gen-str-label">–</span>
+          </div>
+          <div class="strength-track"><div class="strength-bar" id="gen-bar" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <div class="generator-card">
+        <h3 style="margin-bottom:1rem">📖 Password Rules & Best Practices</h3>
+        <div class="check-rules-grid" id="rules-reference"></div>
+      </div>
+    </div>
+
+    <!-- ── CHECKER PAGE ── -->
+    <div id="page-checker" class="hidden">
+      <h2 style="margin-bottom:1.5rem">🔍 Strength Checker</h2>
+      <div class="check-card">
+        <div class="form-group">
+          <label class="field-label">Enter any password to analyse</label>
+          <div class="pwd-wrap">
+            <input type="text" id="check-input" class="field-input" placeholder="Type or paste a password here…"
+                   oninput="runChecker(this.value)" style="font-family:'DM Mono','Courier New',monospace;letter-spacing:0.06em" />
+          </div>
+        </div>
+
+        <div class="big-strength-display" id="big-display">
+          <div class="big-strength-icon">🔒</div>
+          <div class="big-strength-word" style="color:var(--ink-30)">Waiting…</div>
+          <div class="big-strength-score">Enter a password to analyse</div>
+        </div>
+
+        <div class="check-rules-grid" id="check-rules-grid"></div>
+
+        <div class="divider"></div>
+        <div>
+          <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.8rem">Estimated crack time</div>
+          <div id="crack-estimate" style="font-size:0.9rem;color:var(--ink-60)">–</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECURITY TIPS PAGE ── -->
+    <div id="page-security" class="hidden">
+      <h2 style="margin-bottom:0.5rem">🛡 Security Tips</h2>
+      <p style="color:var(--ink-60);margin-bottom:1.5rem;font-size:0.9rem">UK-focused password security guidance</p>
+      <div class="security-tip-grid">
+        <div class="tip-card"><div class="tip-icon">🔑</div><div class="tip-title">Use unique passwords everywhere</div><div class="tip-text">Never reuse passwords. If one site is breached, attackers will try the same credentials on other sites — known as credential stuffing. VaultBite makes this easy.</div></div>
+        <div class="tip-card"><div class="tip-icon">📏</div><div class="tip-title">Length beats complexity</div><div class="tip-text">A 20-character passphrase is stronger than a 10-character jumble. Aim for at least 12 characters for all passwords, and 16+ for important accounts.</div></div>
+        <div class="tip-card"><div class="tip-icon">📱</div><div class="tip-title">Enable two-factor authentication</div><div class="tip-text">Add a second layer beyond your password. Use an authenticator app like Google Authenticator or Microsoft Authenticator — SMS is less secure but still better than nothing.</div></div>
+        <div class="tip-card"><div class="tip-icon">🚨</div><div class="tip-title">Check for data breaches</div><div class="tip-text">Visit haveibeenpwned.com (run by UK security researcher Troy Hunt) to see if your email or passwords have been exposed in known data breaches. Check regularly.</div></div>
+        <div class="tip-card"><div class="tip-icon">🏦</div><div class="tip-title">Protect financial accounts first</div><div class="tip-text">UK banks and HMRC accounts deserve the strongest, most unique passwords. Your Barclays, NatWest, HSBC, or HMRC login should never share a password with any other site.</div></div>
+        <div class="tip-card"><div class="tip-icon">🎣</div><div class="tip-title">Watch out for phishing</div><div class="tip-text">The NCSC (UK's National Cyber Security Centre) reports phishing as the most common cyberattack. Always verify URLs before logging in, especially for banking and government sites (gov.uk).</div></div>
+        <div class="tip-card"><div class="tip-icon">🔄</div><div class="tip-title">When to change passwords</div><div class="tip-text">The NCSC no longer recommends regular password changes unless there's a breach. Instead: use strong, unique passwords from the start, and change immediately if you suspect compromise.</div></div>
+        <div class="tip-card"><div class="tip-icon">🫆</div><div class="tip-title">Use passkeys where possible</div><div class="tip-text">Passkeys (biometric sign-in) are phishing-resistant and faster than passwords. Enable them on sites that support them — Google, Apple, Microsoft, and many banks now offer passkeys.</div></div>
+        <div class="tip-card"><div class="tip-icon">🧒</div><div class="tip-title">Protect children's accounts too</div><div class="tip-text">Young people's gaming, social, and school accounts are frequent targets. Help children set strong passwords and understand not to share them with friends.</div></div>
+      </div>
+      <div style="margin-top:2rem;padding:1.2rem 1.5rem;background:var(--gold-light);border:1px solid var(--gold);border-radius:var(--radius)">
+        <strong>🇬🇧 UK Resources:</strong>
+        <a href="https://www.ncsc.gov.uk" target="_blank" style="color:var(--rust);margin-left:8px">NCSC.gov.uk</a> ·
+        <a href="https://haveibeenpwned.com" target="_blank" style="color:var(--rust);margin-left:8px">HaveIBeenPwned.com</a> ·
+        <a href="https://www.actionfraud.police.uk" target="_blank" style="color:var(--rust);margin-left:8px">Action Fraud</a>
+      </div>
+    </div>
+
+  </div><!-- /page-inner -->
+</div><!-- /main-content -->
+
+<!-- ── DETAIL PANEL ── -->
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-panel-head">
+    <div>
+      <div class="detail-avatar" id="dp-avatar">🔐</div>
+      <div class="detail-site" id="dp-site">–</div>
+      <div class="detail-url" id="dp-url">–</div>
+    </div>
+    <button class="modal-close" onclick="closeDetail()">✕</button>
+  </div>
+  <div class="detail-body" id="dp-body"></div>
+  <div style="padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;gap:8px">
+    <button class="btn-secondary" style="flex:1" onclick="openEditFromDetail()">✏ Edit</button>
+    <button class="btn-secondary" style="flex:1;color:var(--rust-dark)" onclick="deleteFromDetail()">🗑 Delete</button>
+  </div>
+</div>
+
+<!-- ── ADD / EDIT MODAL ── -->
+<div class="modal-overlay hidden" id="entry-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modal-title">Add Password</h3>
+      <button class="modal-close" onclick="closeEntryModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="field-label">Site / App name *</label>
+        <input type="text" id="m-site" class="field-input" placeholder="e.g. Gmail, Netflix, Barclays" />
+      </div>
+      <div class="form-group">
+        <label class="field-label">Website URL</label>
+        <input type="url" id="m-url" class="field-input" placeholder="https://example.com" />
+      </div>
+      <div class="form-group">
+        <label class="field-label">Username / Email *</label>
+        <input type="text" id="m-user" class="field-input" placeholder="you@example.co.uk" />
+      </div>
+      <div class="form-group">
+        <label class="field-label">Password *</label>
+        <div class="pwd-wrap">
+          <input type="text" id="m-pwd" class="field-input" placeholder="Enter or generate below…"
+                 oninput="modalStrength(this.value)" style="font-family:'DM Mono','Courier New',monospace" />
+          <button class="eye-btn" onclick="togglePwd('m-pwd',this)" type="button">👁</button>
+        </div>
+        <div class="strength-meter">
+          <div class="strength-track"><div class="strength-bar" id="m-bar"></div></div>
+          <span class="strength-label" id="m-str">–</span>
+        </div>
+        <button class="btn-secondary" style="width:100%;margin-top:8px;border-radius:8px" onclick="quickGenForModal()">🎲 Generate strong password</button>
+      </div>
+      <div class="form-group">
+        <label class="field-label">Category</label>
+        <select id="m-cat" class="field-input">
+          <option value="social">Social</option>
+          <option value="work">Work</option>
+          <option value="finance">Finance</option>
+          <option value="email">Email</option>
+          <option value="shopping">Shopping</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="field-label">Notes (optional)</label>
+        <textarea id="m-notes" class="field-input" rows="2" placeholder="Security questions, recovery hints…" style="resize:vertical"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeEntryModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveEntry()">Save Password 🔐</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="vb-toast"></div>
+
+<script src="core.js"></script>
+<script>
+let allEntries = [], editingId = null, detailId = null, searchTerm = '';
+
+// ── PAGE ROUTING ──────────────────────────
+function showPage(name) {
+  ['dashboard','vault','generator','checker','security'].forEach(p => {
+    document.getElementById('page-' + p).classList.toggle('hidden', p !== name);
+  });
+  document.querySelectorAll('.nav-item').forEach((n,i) => {
+    const pages = ['dashboard','vault','generator','checker','security'];
+    n.classList.toggle('active', pages[i] === name);
+  });
+  if (name === 'generator') renderRulesReference();
+  if (name === 'checker') renderCheckerRules('');
+}
+
+// ── AUTH GUARD ────────────────────────────
+window.vbInit = async function() {
+  const s = getSession();
+  if (!s) { location.href = 'index.html'; return; }
+  document.getElementById('user-name').textContent  = s.name;
+  document.getElementById('user-email').textContent = s.email;
+  document.getElementById('user-avatar').textContent = s.name ? s.name[0].toUpperCase() : '?';
+  document.getElementById('welcome-name').textContent = s.name.split(' ')[0];
+  await loadVault();
+};
+
+async function loadVault() {
+  allEntries = await getUserVault();
+  updateStats();
+  renderVault();
+  renderRecent();
+  renderWeakList();
+  document.getElementById('vault-count').textContent = allEntries.length;
+}
+
+// ── STATS ─────────────────────────────────
+function updateStats() {
+  const total  = allEntries.length;
+  const strong = allEntries.filter(e => scorePassword(e.password).level === 'strong' || scorePassword(e.password).level === 'excellent').length;
+  const weak   = allEntries.filter(e => scorePassword(e.password).level === 'weak').length;
+  const score  = total ? Math.round((strong / total) * 100) : 0;
+  document.getElementById('stat-total').textContent  = total;
+  document.getElementById('stat-strong').textContent = strong;
+  document.getElementById('stat-weak').textContent   = weak;
+  document.getElementById('stat-score').textContent  = total ? score + '%' : '–';
+  document.getElementById('weak-count').textContent  = weak;
+}
+
+// ── RENDER ────────────────────────────────
+function renderRow(e) {
+  return `
+    <div class="vault-item">
+      <h3>${e.site || "No Site"}</h3>
+      <p>${e.username || "No Username"}</p>
+      <p>${e.password || "No Password"}</p>
+    </div>
+  `;
+}
+
+function renderVault() {
+  const cat = document.getElementById('cat-filter')?.value || 'all';
+  let entries = allEntries.filter(e => {
+    const matchCat = cat === 'all' || e.category === cat;
+    const matchSearch = !searchTerm || e.site.toLowerCase().includes(searchTerm) || e.username.toLowerCase().includes(searchTerm);
+    return matchCat && matchSearch;
+  });
+  const list = document.getElementById('vault-list');
+  if (!entries.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🔐</div><div class="empty-text">No passwords here yet</div><div class="empty-sub">Click "Add Password" to get started</div></div>`;
+    return;
+  }
+  list.innerHTML = entries.map(e => renderRow(e, 'openDetail')).join('');
+}
+
+function renderRecent() {
+  const recent = [...allEntries].sort((a,b) => b.updatedAt - a.updatedAt).slice(0,5);
+  const el = document.getElementById('recent-list');
+  el.innerHTML = recent.length ? recent.map(e => renderRow(e, 'openDetail')).join('')
+    : '<div class="empty-state"><div class="empty-icon">🥐</div><div class="empty-text">Your vault is empty</div><div class="empty-sub">Add your first password to get started</div></div>';
+}
+
+function renderWeakList() {
+  const weak = allEntries.filter(e => scorePassword(e.password).level === 'weak');
+  const el = document.getElementById('weak-list');
+  el.innerHTML = weak.length ? weak.map(e => renderRow(e, 'openDetail')).join('')
+    : '<div style="padding:1rem;color:var(--ink-60);font-size:0.88rem">🎉 No weak passwords found — great work!</div>';
+}
+
+function filterWeak() {
+  document.getElementById('cat-filter').value = 'all';
+  const list = document.getElementById('vault-list');
+  const weak = allEntries.filter(e => scorePassword(e.password).level === 'weak');
+  list.innerHTML = weak.length ? weak.map(e => renderRow(e,'openDetail')).join('')
+    : '<div class="empty-state"><div class="empty-icon">🎉</div><div class="empty-text">No weak passwords!</div></div>';
+}
+
+function handleSearch(q) {
+  searchTerm = q.toLowerCase();
+  renderVault();
+}
+
+// ── DETAIL PANEL ──────────────────────────
+function openDetail(id) {
+  const e = allEntries.find(x => x.id === id);
+  if (!e) return;
+  detailId = id;
+  document.getElementById('dp-avatar').textContent = getSiteEmoji(e.site);
+  document.getElementById('dp-site').textContent   = e.site;
+  document.getElementById('dp-url').textContent    = e.url || '–';
+  const { label, score, color } = scorePassword(e.password);
+  document.getElementById('dp-body').innerHTML = `
+    <div class="detail-field">
+      <div class="detail-field-label">Username / Email</div>
+      <div class="detail-field-val">
+        <span class="val">${e.username}</span>
+        <span class="copy-mini" onclick="copyToClipboard('${e.username}','Username')">Copy</span>
+      </div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-field-label">Password</div>
+      <div class="detail-field-val" id="dp-pwd-field">
+        <span class="val" id="dp-pwd-val">••••••••••••</span>
+        <span class="copy-mini" onclick="toggleDetailPwd(${id})">Show</span>
+        <span class="copy-mini" onclick="copyToClipboard('${e.password.replace(/'/g,"\\'")}','Password')">Copy</span>
+      </div>
+    </div>
+    <div class="detail-field">
+      <div class="detail-field-label">Strength</div>
+      <div style="margin-top:4px">
+        <div class="strength-track"><div class="strength-bar" style="width:${score}%;background:${color}"></div></div>
+        <span style="font-size:0.8rem;color:${color};font-weight:600;margin-top:4px;display:block">${label} — ${score}/100</span>
+      </div>
+    </div>
+    ${e.notes ? `<div class="detail-field"><div class="detail-field-label">Notes</div><div style="font-size:0.85rem;color:var(--ink-60);line-height:1.6">${e.notes}</div></div>` : ''}
+    <div class="detail-field">
+      <div class="detail-field-label">Category</div>
+      <span class="str-chip moderate" style="display:inline-block;margin-top:4px">${e.category || 'other'}</span>
+    </div>`;
+  document.getElementById('detail-panel').classList.add('open');
+}
+
+let detailPwdShown = false;
+function toggleDetailPwd(id) {
+  const e = allEntries.find(x => x.id === id);
+  if (!e) return;
+  detailPwdShown = !detailPwdShown;
+  document.getElementById('dp-pwd-val').textContent = detailPwdShown ? e.password : '••••••••••••';
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('open');
+  detailPwdShown = false;
+}
+
+function openEditFromDetail() {
+  if (detailId) { openEditModal(detailId); closeDetail(); }
+}
+function deleteFromDetail() {
+  if (detailId) confirmDelete(detailId);
+}
+
+// ── ADD / EDIT MODAL ──────────────────────
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modal-title').textContent = 'Add Password';
+  ['m-site','m-url','m-user','m-pwd','m-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('m-cat').value = 'other';
+  document.getElementById('m-bar').style.width = '0%';
+  document.getElementById('m-str').textContent = '–';
+  document.getElementById('entry-modal').classList.remove('hidden');
+}
+
+function openEditModal(id) {
+  const e = allEntries.find(x => x.id === id);
+  if (!e) return;
+  editingId = id;
+  document.getElementById('modal-title').textContent = 'Edit Password';
+  document.getElementById('m-site').value  = e.site || '';
+  document.getElementById('m-url').value   = e.url || '';
+  document.getElementById('m-user').value  = e.username || '';
+  document.getElementById('m-pwd').value   = e.password || '';
+  document.getElementById('m-cat').value   = e.category || 'other';
+  document.getElementById('m-notes').value = e.notes || '';
+  modalStrength(e.password);
+  document.getElementById('entry-modal').classList.remove('hidden');
+}
+
+function closeEntryModal() { document.getElementById('entry-modal').classList.add('hidden'); }
+
+function modalStrength(pwd) {
+  const { score, label, color } = scorePassword(pwd);
+  const bar = document.getElementById('m-bar');
+  bar.style.width = score + '%'; bar.style.background = color || '#ccc';
+  document.getElementById('m-str').textContent = pwd ? `${label} — ${score}/100` : '–';
+  document.getElementById('m-str').style.color = color || '';
+}
+
+function quickGenForModal() {
+  const pwd = generatePassword({ length: 16, upper: true, numbers: true, symbols: true });
+  document.getElementById('m-pwd').value = pwd;
+  modalStrength(pwd);
+}
+
+async function saveEntry() {
+  const site     = document.getElementById('m-site').value.trim();
+  const url      = document.getElementById('m-url').value.trim();
+  const username = document.getElementById('m-user').value.trim();
+  const password = document.getElementById('m-pwd').value;
+  const category = document.getElementById('m-cat').value;
+  const notes    = document.getElementById('m-notes').value.trim();
+  if (!site || !username || !password) { showToast('⚠ Site, username, and password are required.'); return; }
+  const { score } = scorePassword(password);
+  if (score < 20 && !confirm('⚠ This password is very weak. Save anyway?')) return;
+  if (editingId) {
+    await updateVaultEntry({ id: editingId, site, url, username, password, category, notes });
+    showToast('Password updated ✓');
+  } else {
+    await addVaultEntry({ site, url, username, password, category, notes });
+    showToast('Password saved to your vault ✓');
+  }
+  closeEntryModal();
+  await loadVault();
+}
+
+async function confirmDelete(id) {
+  const e = allEntries.find(x => x.id === id);
+  if (!e) return;
+  if (!confirm(`Delete "${e.site}" from your vault?`)) return;
+  await deleteVaultEntry(id);
+  closeDetail();
+  showToast(`"${e.site}" deleted.`);
+  await loadVault();
+}
+
+// ── GENERATOR ────────────────────────────
+let lastGenerated = '';
+function doGenerate(type) {
+  const length = parseInt(document.getElementById('gen-length')?.value || 16);
+  const upper   = document.getElementById('opt-upper')?.checked ?? true;
+  const numbers = document.getElementById('opt-numbers')?.checked ?? true;
+  const symbols = document.getElementById('opt-symbols')?.checked ?? true;
+  const ambig   = document.getElementById('opt-ambig')?.checked ?? false;
+  lastGenerated = type === 'passphrase'
+    ? generatePassphrase(4)
+    : generatePassword({ length, upper, numbers, symbols, excludeAmbiguous: ambig });
+  document.getElementById('gen-output').textContent = lastGenerated;
+  const { score, label, color } = scorePassword(lastGenerated);
+  const bar = document.getElementById('gen-bar');
+  bar.style.width = score + '%'; bar.style.background = color;
+  document.getElementById('gen-str-label').textContent = `${label} — ${score}/100`;
+  document.getElementById('gen-str-label').style.color = color;
+}
+function copyGenOutput() {
+  if (!lastGenerated) { showToast('Generate a password first.'); return; }
+  copyToClipboard(lastGenerated, 'Password');
+}
+function saveGenPassword() {
+  if (!lastGenerated) { showToast('Generate a password first.'); return; }
+  document.getElementById('m-pwd').value = lastGenerated;
+  modalStrength(lastGenerated);
+  openAddModal();
+  document.getElementById('m-pwd').value = lastGenerated;
+  modalStrength(lastGenerated);
+  showPage('vault');
+  document.getElementById('entry-modal').classList.remove('hidden');
+}
+function toggleChip(input, chipId) {
+  document.getElementById(chipId).classList.toggle('on', input.checked);
+}
+
+// ── CHECKER ───────────────────────────────
+function runChecker(pwd) {
+  const disp = document.getElementById('big-display');
+  const { score, label, color, level, rules } = scorePassword(pwd);
+  if (!pwd) {
+    disp.innerHTML = `<div class="big-strength-icon">🔒</div><div class="big-strength-word" style="color:var(--ink-30)">Waiting…</div><div class="big-strength-score">Enter a password to analyse</div>`;
+    disp.style.background = '';
+    renderCheckerRules('');
+    document.getElementById('crack-estimate').textContent = '–';
+    return;
+  }
+  const icons = { weak:'💀', moderate:'⚠', strong:'💪', excellent:'🏆' };
+  disp.innerHTML = `
+    <div class="big-strength-icon">${icons[level]||'🔒'}</div>
+    <div class="big-strength-word" style="color:${color}">${label}</div>
+    <div class="big-strength-score">Score: ${score}/100</div>`;
+  disp.style.background = color + '18';
+  disp.style.borderColor = color + '44';
+
+  const grid = document.getElementById('check-rules-grid');
+  grid.innerHTML = rules.map(r => `
+    <div class="check-rule ${r.passed ? 'pass' : 'fail'}">
+      <span class="check-rule-icon">${r.passed ? '✅' : '❌'}</span>
+      ${r.label}
+    </div>`).join('');
+
+  // Rough crack time estimate
+  const charspace = /[a-z]/.test(pwd)*26 + /[A-Z]/.test(pwd)*26 + /[0-9]/.test(pwd)*10 + /[^A-Za-z0-9]/.test(pwd)*32;
+  const combinations = Math.pow(charspace||26, pwd.length);
+  const attemptsPerSec = 1e10; // 10 billion/sec (modern GPU)
+  const seconds = combinations / attemptsPerSec;
+  let crackStr;
+  if (seconds < 1)         crackStr = '⚡ Instantly';
+  else if (seconds < 60)   crackStr = `⚠ About ${Math.round(seconds)} seconds`;
+  else if (seconds < 3600) crackStr = `⏱ About ${Math.round(seconds/60)} minutes`;
+  else if (seconds < 86400)crackStr = `📅 About ${Math.round(seconds/3600)} hours`;
+  else if (seconds < 3.15e7)crackStr= `📆 About ${Math.round(seconds/86400)} days`;
+  else if (seconds < 3.15e9)crackStr= `🗓 About ${Math.round(seconds/3.15e7)} years`;
+  else                     crackStr = `🔒 Billions of years — practically uncrackable`;
+  document.getElementById('crack-estimate').textContent = crackStr;
+}
+
+function renderCheckerRules(pwd) {
+  const { rules } = scorePassword(pwd);
+  document.getElementById('check-rules-grid').innerHTML = rules.map(r => `
+    <div class="check-rule ${r.passed?'pass':'fail'}">
+      <span class="check-rule-icon">${r.passed?'✅':'❌'}</span>
+      ${r.label}
+    </div>`).join('');
+}
+
+function renderRulesReference() {
+  document.getElementById('rules-reference').innerHTML = PASSWORD_RULES.map(r => `
+    <div class="check-rule pass">
+      <span class="check-rule-icon">📌</span>
+      ${r.label}
+    </div>`).join('');
+}
+
+// ── LOGOUT ────────────────────────────────
+function handleLogout() {
+  clearSession();
+  location.href = 'index.html';
+}
+
+// Init generate on load
+setTimeout(() => { if (document.getElementById('gen-output')) doGenerate(); }, 200);
+</script>
+</body>
+</html>

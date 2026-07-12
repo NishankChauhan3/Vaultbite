@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VaultBite — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="main.css">
+</head>
+<body class="auth-page">
+
+<div class="food-bg" aria-hidden="true">
+  <span class="particle" style="--x:8%;--y:18%;--s:1.3;--d:7s">🥐</span>
+  <span class="particle" style="--x:83%;--y:12%;--s:1;--d:9s">🍋</span>
+  <span class="particle" style="--x:72%;--y:72%;--s:1.2;--d:6s">🧄</span>
+  <span class="particle" style="--x:18%;--y:78%;--s:0.9;--d:11s">🫙</span>
+  <span class="particle" style="--x:50%;--y:8%;--s:1.1;--d:8s">🍓</span>
+  <span class="particle" style="--x:91%;--y:50%;--s:0.8;--d:10s">🌿</span>
+  <span class="particle" style="--x:4%;--y:52%;--s:1.2;--d:7s">🥚</span>
+  <span class="particle" style="--x:42%;--y:90%;--s:1;--d:9s">🍯</span>
+  <span class="particle" style="--x:62%;--y:35%;--s:0.85;--d:12s">🫐</span>
+</div>
+
+<div class="auth-container">
+  <div class="brand">
+    <div class="brand-logo">🔒</div>
+    <h1 class="brand-name">VaultBite</h1>
+    <p class="brand-tagline">Your secret recipe box — for passwords</p>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchTab('login')">Sign In</button>
+    <button class="tab"        onclick="switchTab('register')">Create Account</button>
+  </div>
+
+  <!-- ── LOGIN ── -->
+  <div class="auth-card" id="tab-login">
+    <div class="passkey-section">
+      <button class="passkey-btn" onclick="showPasskeyOptions()">
+        <span class="passkey-icon">🫆</span>
+        <div>
+          <div class="passkey-title">Sign in with Passkey</div>
+          <div class="passkey-sub">Fingerprint, Face ID, PIN or security key</div>
+        </div>
+        <span class="passkey-arrow">→</span>
+      </button>
+      <div class="or-divider"><span>or use master password</span></div>
+    </div>
+
+    <div class="form-group">
+      <label class="field-label" for="login-email">Email address</label>
+      <input type="email" id="login-email" class="field-input" placeholder="you@example.co.uk" autocomplete="email" />
+    </div>
+    <div class="form-group">
+      <label class="field-label" for="login-pwd">Master password</label>
+      <div class="pwd-wrap">
+        <input type="password" id="login-pwd" class="field-input" placeholder="Your secret ingredient…" autocomplete="current-password" />
+        <button class="eye-btn" onclick="togglePwd('login-pwd',this)" type="button" aria-label="Toggle visibility">👁</button>
+      </div>
+    </div>
+
+    <a href="#" class="forgot-link" onclick="showPasskeyOptions(); return false;">
+      Forgot your password? Recover via passkey →
+    </a>
+
+    <button class="submit-btn" onclick="handleLogin()">
+      Open the Vault <span>🔓</span>
+    </button>
+    <p class="form-note">Protected with SHA-256 hashing · UK GDPR compliant · No data leaves your device</p>
+  </div>
+
+  <!-- ── REGISTER ── -->
+  <div class="auth-card hidden" id="tab-register">
+    <div class="form-group">
+      <label class="field-label" for="reg-name">Full name</label>
+      <input type="text" id="reg-name" class="field-input" placeholder="Your name" autocomplete="name" />
+    </div>
+    <div class="form-group">
+      <label class="field-label" for="reg-email">Email address</label>
+      <input type="email" id="reg-email" class="field-input" placeholder="you@example.co.uk" autocomplete="email" />
+    </div>
+    <div class="form-group">
+      <label class="field-label" for="reg-pwd">Master password</label>
+      <div class="pwd-wrap">
+        <input type="password" id="reg-pwd" class="field-input" placeholder="Make it unguessable…"
+               oninput="liveRegStrength(this.value)" autocomplete="new-password" />
+        <button class="eye-btn" onclick="togglePwd('reg-pwd',this)" type="button" aria-label="Toggle visibility">👁</button>
+      </div>
+      <div class="strength-meter">
+        <div class="strength-track"><div class="strength-bar" id="reg-bar"></div></div>
+        <span class="strength-label" id="reg-label">Enter a password above</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="field-label" for="reg-confirm">Confirm master password</label>
+      <input type="password" id="reg-confirm" class="field-input" placeholder="Repeat the secret…" autocomplete="new-password" />
+    </div>
+
+    <div class="rules-box">
+      <div class="rules-title">🍳 Recipe for a strong master password</div>
+      <div id="reg-rules">
+        <!-- injected by JS -->
+      </div>
+    </div>
+
+    <button class="submit-btn" onclick="handleRegister()">
+      Create My Vault <span>🔐</span>
+    </button>
+    <p class="form-note">You can set up a passkey after registration for quick access</p>
+  </div>
+</div>
+
+<!-- ── PASSKEY RECOVERY MODAL ── -->
+<div class="modal-overlay hidden" id="passkey-modal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <h3 class="modal-title">🫆 Recover with Passkey</h3>
+      <button class="modal-close" onclick="closePasskeyModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.9rem;color:var(--ink-60);margin-bottom:1.2rem;line-height:1.7">
+        Use a biometric or device passkey you registered to access your vault without your master password.
+      </p>
+      <div class="passkey-options">
+        <div class="passkey-option" onclick="startFingerprintAuth()">
+          <span class="passkey-opt-icon">🫆</span>
+          <div>
+            <div class="passkey-opt-title">Fingerprint / Face ID</div>
+            <div class="passkey-opt-sub">Use your device biometrics</div>
+          </div>
+        </div>
+        <div class="passkey-option" onclick="handlePinLogin()">
+          <span class="passkey-opt-icon">🔑</span>
+          <div>
+            <div class="passkey-opt-title">Device PIN</div>
+            <div class="passkey-opt-sub">Use your Windows Hello or device PIN</div>
+          </div>
+        </div>
+        <div class="passkey-option" onclick="handleSecurityKeyLogin()">
+          <span class="passkey-opt-icon">🔒</span>
+          <div>
+            <div class="passkey-opt-title">Security Key</div>
+            <div class="passkey-opt-sub">USB or NFC hardware key</div>
+          </div>
+        </div>
+      </div>
+      <p style="font-size:0.75rem;color:var(--ink-30);margin-top:1rem;text-align:center">
+        Passkeys must be set up during registration. Contact support if locked out.
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="vb-toast"></div>
+
+<script src="./core.js"></script>
+<script>
+  const tabs = document.querySelectorAll('.tab');
+
+  function switchTab(name) {
+    tabs.forEach((t,i) => t.classList.toggle('active', (i===0 && name==='login') || (i===1 && name==='register')));
+    document.getElementById('tab-login').classList.toggle('hidden', name !== 'login');
+    document.getElementById('tab-register').classList.toggle('hidden', name !== 'register');
+  }
+
+  function togglePwd(id, btn) {
+    const inp = document.getElementById(id);
+    inp.type  = inp.type === 'password' ? 'text' : 'password';
+    btn.style.opacity = inp.type === 'text' ? '1' : '0.5';
+  }
+
+  function renderRegRules(pwd) {
+    const { rules } = scorePassword(pwd || '');
+    document.getElementById('reg-rules').innerHTML = rules.map(r => `
+      <div class="rule-item ${r.passed ? 'pass' : 'fail'}">
+        <span class="rule-dot">${r.passed ? '✓' : '·'}</span>
+        ${r.label}
+      </div>`).join('');
+  }
+
+  function liveRegStrength(pwd) {
+    const { score, label, color } = scorePassword(pwd);
+    const bar = document.getElementById('reg-bar');
+    const lbl = document.getElementById('reg-label');
+    bar.style.width = score + '%';
+    bar.style.background = color || '#ccc';
+    lbl.textContent = pwd ? `${label} — ${score}/100` : 'Enter a password above';
+    lbl.style.color = color || '';
+    renderRegRules(pwd);
+  }
+
+  // Init rules on load
+  window.vbInit = () => { renderRegRules(''); };
+
+  async function handleLogin() {
+    const email = document.getElementById('login-email').value.trim();
+    const pwd   = document.getElementById('login-pwd').value;
+    if (!email || !pwd) { showToast('Please fill in your email and password.'); return; }
+    showToast('Checking credentials…');
+    const result = await loginUser(email, pwd);
+    if (result.ok) {
+      showToast('Welcome back! Opening your vault… 🔓');
+      setTimeout(() => location.href = 'vault.html', 900);
+    } else { showToast('⚠ ' + result.msg); }
+  }
+
+ async function handleRegister() {
+  const name  = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pwd   = document.getElementById('reg-pwd').value;
+
+  // ❌ FIXED: renamed from "confirm"
+  const confirmPwd = document.getElementById('reg-confirm').value;
+
+  if (!name || !email || !pwd) {
+    showToast('Please fill in all fields.');
+    return;
+  }
+
+  if (pwd !== confirmPwd) {
+    showToast('Passwords do not match.');
+    return;
+  }
+
+  const { score } = scorePassword(pwd);
+
+  if (score < 35) {
+    showToast('⚠ Weak password.');
+    return;
+  }
+
+  if (pwd.length < 12) {
+    showToast('⚠ Minimum 12 characters required.');
+    return;
+  }
+
+  const result = await registerUser(name, email, pwd);
+
+  console.log("RESULT:", result);
+
+  if (result.ok) {
+    showToast('Account created! Setting up your vault… 🎉');
+
+    // 🔒 SECURITY KEY
+    const wantKey = window.confirm("🔒 Set up security key?");
+    if (wantKey) {
+      const key = window.prompt("Create your security key:");
+
+      if (key && key.trim() !== "") {
+        localStorage.setItem("vb_security_key_" + email, key);
+        showToast("Security key saved 🔐");
+      } else {
+        showToast("⚠ Security key not set");
+      }
+    }
+
+    // 🔢 PIN
+    const wantPin = window.confirm("🔢 Set a 4-digit PIN?");
+    if (wantPin) {
+      const pin = window.prompt("Enter a 4-digit PIN:");
+
+      if (pin && /^\d{4}$/.test(pin)) {
+        localStorage.setItem("vb_pin_" + email, pin);
+        showToast("PIN saved 🔐");
+      } else {
+        showToast("⚠ Invalid PIN");
+      }
+    }
+
+    // 🔑 PASSKEY
+    const wantPasskey = window.confirm("🫆 Set up passkey?");
+    if (wantPasskey) {
+      await registerPasskey(email);
+    }
+
+    // 🚀 REDIRECT
+    window.location.href = 'vault.html';
+
+  } else {
+    showToast('⚠ ' + result.msg);
+  }
+}
+  async function handlePasskeyLogin() {
+  showToast('Requesting passkey authentication…');
+
+  const result = await authenticatePasskey();
+
+  if (result.ok) {
+    closePasskeyModal();
+
+    // ✅ IMPORTANT: set fake session (very important)
+    sessionStorage.setItem("vb_user", JSON.stringify({
+      email: "demo@vault.com",
+      name: "Demo User"
+    }));
+
+    showToast('Passkey verified! Opening your vault… 🔓');
+
+    setTimeout(() => {
+      window.location.href = "vault.html";
+    }, 800);
+
+  } else {
+    showToast('⚠ Passkey authentication failed.');
+  }
+}
+  function showPasskeyOptions() { document.getElementById('passkey-modal').classList.remove('hidden'); }
+  function closePasskeyModal()  { document.getElementById('passkey-modal').classList.add('hidden'); }
+</script>
+</body>
+</html>
